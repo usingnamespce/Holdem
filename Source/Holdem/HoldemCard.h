@@ -47,14 +47,18 @@ public:
 	AHoldemCard();
 
 	UFUNCTION(BlueprintImplementableEvent,BlueprintCallable)
-	void SetCardID(int32 InCardID);
+	void SetCardInfo(FCardInfo InCardInfo);
 	
 private:
 	
 	virtual void BeginPlay() override;
-
+	virtual void GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const override; 
+	UFUNCTION()
+	void OnRep_CardInfo();
 public:
 	
-	UPROPERTY(BlueprintReadWrite,EditAnywhere)
+	UPROPERTY(BlueprintReadWrite,EditAnywhere,meta=(ExposeOnSpawn=true),ReplicatedUsing=OnRep_CardInfo)
 	FCardInfo CardInfo;
+
+	static FCardInfo CardIdToCardInfo(int32 CardID);
 };
