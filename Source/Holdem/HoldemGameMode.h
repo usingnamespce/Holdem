@@ -72,6 +72,10 @@ public:
 	UFUNCTION(BlueprintPure)
 	static int32 CompareCards(TArray<FCardInfo> ACards, TArray<FCardInfo> BCards);
 	
+	// 分析牌组的关键信息
+	UFUNCTION(BlueprintPure)
+	static FCardsKeyInfo AnalyzeCardsKeyInfo(TArray<FCardInfo> Cards);
+	
 private:
 	// 判断是否同花
 	static bool IsFlush(TArray<FCardInfo> Cards);
@@ -79,8 +83,6 @@ private:
 	static bool IsStraight(TArray<FCardInfo> Cards);
 	// 对牌组的牌数进行统计 --需要排序后的牌组（大的在前）
 	static TMap<int32,int32> CountCardNum(TArray<FCardInfo> Cards);
-	// 分析牌组的关键信息
-	static FCardsKeyInfo AnalyzeCardsKeyInfo(TArray<FCardInfo> Cards);
 	
 public:
 	// 桌子的引用
