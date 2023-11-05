@@ -9,6 +9,19 @@
 
 class AHoldemDesk;
 
+UENUM(BlueprintType)
+enum class ECompareResult : uint8
+{
+	//无法比较
+	None,
+	//相等
+	Equality,
+	//大于
+	Greater,
+	//小于
+	Less,
+};
+
 // 牌组牌型
 UENUM(BlueprintType)
 enum class ECardsType : uint8
@@ -68,9 +81,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ResetCardPool();
 
-	// 比较两个牌的大小 1->大 0->无法比较 -1->小
+	// 通过牌组的关键信息，比较两个牌组的大小
 	UFUNCTION(BlueprintPure)
-	static int32 CompareCards(TArray<FCardInfo> ACards, TArray<FCardInfo> BCards);
+	static ECompareResult CompareCards(FCardsKeyInfo ACards, FCardsKeyInfo BCards);
 	
 	// 分析牌组的关键信息
 	UFUNCTION(BlueprintPure)
@@ -83,6 +96,14 @@ private:
 	static bool IsStraight(TArray<FCardInfo> Cards);
 	// 对牌组的牌数进行统计 --需要排序后的牌组（大的在前）
 	static TMap<int32,int32> CountCardNum(TArray<FCardInfo> Cards);
+	// 比较顺子的大小
+	static ECompareResult CompareStraight(FCardsKeyInfo ACards, FCardsKeyInfo BCards);
+	// 比较高牌
+	static ECompareResult CompareHigh(FCardsKeyInfo ACards, FCardsKeyInfo BCards);
+	// 比较花色
+	static ECompareResult CompareType(FCardsKeyInfo ACards, FCardsKeyInfo BCards);
+	// 比较对子
+	static ECompareResult ComparePair(FCardsKeyInfo ACards, FCardsKeyInfo BCards);
 	
 public:
 	// 桌子的引用
