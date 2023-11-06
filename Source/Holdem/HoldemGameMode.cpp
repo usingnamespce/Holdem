@@ -3,10 +3,19 @@
 #include "HoldemGameMode.h"
 #include "HoldemCharacter.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
+#include "HoldemGameStateBase.h"
+#include "HoldemPlayerState.h"
 
 AHoldemGameMode::AHoldemGameMode()
 {
-	
+	CombinationMode.Append({{ 0,1,2,3,4 }, { 0,1,2,3,5 }, { 0,1,2,3,6 }, 
+						    { 0,1,2,4,5 }, { 0,1,2,4,6 }, { 0,1,2,5,6 }, 
+						    { 0,1,3,4,5 }, { 0,1,3,4,6 }, { 0,1,3,5,6 }, 
+						    { 0,1,4,5,6 }, { 0,2,3,4,5 }, { 0,2,3,4,6 }, 
+						    { 0,2,3,5,6 }, { 0,2,4,5,6 }, { 0,3,4,5,6 }, 
+						    { 1,2,3,4,5 }, { 1,2,3,4,6 }, { 1,2,3,5,6 }, 
+						    { 1,2,4,5,6 }, { 1,3,4,5,6 }, { 2,3,4,5,6 }});
 }
 
 FCardInfo AHoldemGameMode::GetUnallocatedCard()
@@ -340,4 +349,26 @@ FCardsKeyInfo AHoldemGameMode::AnalyzeCardsKeyInfo(TArray<FCardInfo> Cards)
 	}
 	
 	return CardsKeyInfo;
+}
+
+TArray<FCardInfo> AHoldemGameMode::ChoosePlayerBestCards(AHoldemPlayerState* Player)
+{
+	TArray<FCardInfo> BestCards;
+	BestCards.Reserve(5);
+
+	TArray<FCardInfo> PublicCards = Cast<AHoldemGameStateBase>(UGameplayStatics::GetGameState(this))->PublicCards;
+	if (PublicCards.Num() != 5)
+	{
+		UE_LOG(LogTemp, Error, TEXT("公共牌数不为5"));
+	}
+
+	TArray<FCardInfo> PlayerCards = Player->GetCardsInfo();
+	if (PlayerCards.Num() != 2)
+	{
+		UE_LOG(LogTemp, Error, TEXT("玩家%s牌数不为2"),*Player->GetPlayerName());
+	}
+
+
+
+	return BestCards;
 }

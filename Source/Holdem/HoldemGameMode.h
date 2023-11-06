@@ -8,6 +8,7 @@
 #include "HoldemGameMode.generated.h"
 
 class AHoldemDesk;
+class AHoldemPlayerState;
 
 UENUM(BlueprintType)
 enum class ECompareResult : uint8
@@ -88,6 +89,10 @@ public:
 	// 分析牌组的关键信息
 	UFUNCTION(BlueprintPure)
 	static FCardsKeyInfo AnalyzeCardsKeyInfo(TArray<FCardInfo> Cards);
+
+	// 选出玩家的最佳组合牌型, 若为空值代表全部用的是公共牌
+	UFUNCTION(BlueprintCallable)
+	TArray<FCardInfo> ChoosePlayerBestCards(AHoldemPlayerState* Player);
 	
 private:
 	// 判断是否同花
@@ -113,6 +118,8 @@ public:
 	// 已分配的卡牌
 	UPROPERTY(BlueprintReadWrite)
 	TArray<int32> HasAllocatedCards;
+
+	TArray<TArray<int32>> CombinationMode;
 };
 
 
