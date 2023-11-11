@@ -35,6 +35,15 @@ struct FCardInfo
 	//牌的ID
 	UPROPERTY(BlueprintReadWrite,EditAnywhere)
 	int32 CardID;
+
+	bool operator== (const FCardInfo& Other) const
+	{
+		if(Type == Other.Type && CardNumber == Other.CardNumber && CardID == Other.CardID)
+		{
+			return true;
+		}
+		return false;
+	}
 };
 
 UCLASS()

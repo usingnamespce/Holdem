@@ -5,6 +5,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "HoldemGameStateBase.h"
+#include "HoldemPlayerController.h"
 #include "HoldemPlayerState.h"
 
 AHoldemGameMode::AHoldemGameMode()
@@ -30,7 +31,7 @@ FCardInfo AHoldemGameMode::GetUnallocatedCard()
 			break;
 		}
 	}
-	FCardInfo NewCardInfo = AHoldemCard::CardIdToCardInfo(RandomCardID);
+	const FCardInfo NewCardInfo = AHoldemCard::CardIdToCardInfo(RandomCardID);
 	UE_LOG(LogTemp,Log,TEXT("获得未分配的卡牌：卡牌ID:%d   卡牌类型：%s   卡牌大小:%d"),NewCardInfo.CardID,*UEnum::GetValueAsString(NewCardInfo.Type),NewCardInfo.CardNumber);
 	return NewCardInfo;
 }
@@ -40,7 +41,7 @@ void AHoldemGameMode::ResetCardPool()
 	HasAllocatedCards.Reset();
 }
 
-ECompareResult AHoldemGameMode::CompareCards(FCardsKeyInfo ACards, FCardsKeyInfo BCards)
+ECompareResult AHoldemGameMode::CompareCards(const FCardsKeyInfo& ACards, const FCardsKeyInfo& BCards)
 {
 	// 大于
 	if(ACards.CardsType > BCards.CardsType)
@@ -151,11 +152,11 @@ TMap<int32, int32> AHoldemGameMode::CountCardNum(TArray<FCardInfo> Cards)
 	return CardsNum;
 }
 
-ECompareResult AHoldemGameMode::CompareStraight(FCardsKeyInfo ACards, FCardsKeyInfo BCards)
+ECompareResult AHoldemGameMode::CompareStraight(const FCardsKeyInfo& ACards, const FCardsKeyInfo& BCards)
 {
 	// 首先判断是否为最小的顺子 A5432
-	bool bAIsLess = (ACards.CardInfos[1].CardNumber == 5 && ACards.CardInfos[0].CardNumber == 14);
-	bool bBIsLess = (BCards.CardInfos[1].CardNumber == 5 && BCards.CardInfos[0].CardNumber == 14);
+	const bool bAIsLess = (ACards.CardInfos[1].CardNumber == 5 && ACards.CardInfos[0].CardNumber == 14);
+	const bool bBIsLess = (BCards.CardInfos[1].CardNumber == 5 && BCards.CardInfos[0].CardNumber == 14);
 	
 	if(bAIsLess)
 	{
@@ -179,7 +180,7 @@ ECompareResult AHoldemGameMode::CompareStraight(FCardsKeyInfo ACards, FCardsKeyI
 	return CompareHigh(ACards,BCards);
 }
 
-ECompareResult AHoldemGameMode::CompareHigh(FCardsKeyInfo ACards, FCardsKeyInfo BCards)
+ECompareResult AHoldemGameMode::CompareHigh(const FCardsKeyInfo& ACards, const FCardsKeyInfo& BCards)
 {
 	// 比较牌的大小
 	for(int32 i=0;i<5;i++)
@@ -195,7 +196,7 @@ ECompareResult AHoldemGameMode::CompareHigh(FCardsKeyInfo ACards, FCardsKeyInfo 
 	return CompareType(ACards,BCards);
 }
 
-ECompareResult AHoldemGameMode::CompareType(FCardsKeyInfo ACards, FCardsKeyInfo BCards)
+ECompareResult AHoldemGameMode::CompareType(const FCardsKeyInfo& ACards, const FCardsKeyInfo& BCards)
 {
 	// 比较第一张牌的花色
 	if(ACards.CardInfos[0].Type == BCards.CardInfos[0].Type)
@@ -206,7 +207,7 @@ ECompareResult AHoldemGameMode::CompareType(FCardsKeyInfo ACards, FCardsKeyInfo 
 	return (ACards.CardInfos[0].Type > BCards.CardInfos[0].Type) ? ECompareResult::Greater : ECompareResult::Less;
 }
 
-ECompareResult AHoldemGameMode::ComparePair(FCardsKeyInfo ACards, FCardsKeyInfo BCards)
+ECompareResult AHoldemGameMode::ComparePair(const FCardsKeyInfo& ACards, const FCardsKeyInfo& BCards)
 {
 	// 筛选对子
 	auto FilterPair = [](TPair<int32, int32> Item)
@@ -252,8 +253,8 @@ ECompareResult AHoldemGameMode::ComparePair(FCardsKeyInfo ACards, FCardsKeyInfo 
 	}
 
 	// 对子都相同了，只有比较最后一张的大小了
-	int32 ATempNum = *ACards.CardsNum.FindKey(1);
-	int32 BTempNum = *BCards.CardsNum.FindKey(1);
+	const int32 ATempNum = *ACards.CardsNum.FindKey(1);
+	const int32 BTempNum = *BCards.CardsNum.FindKey(1);
 	if(ATempNum > BTempNum)
 	{
 		return ECompareResult::Greater;
@@ -265,6 +266,30 @@ ECompareResult AHoldemGameMode::ComparePair(FCardsKeyInfo ACards, FCardsKeyInfo 
 	// 比较花色
 	return CompareType(ACards,BCards);
 }
+
+void AHoldemGameMode::EvenlyDistributeChips(TArray<AHoldemPlayerState*> Players, int32 Chips)
+{
+	const int32 Num = Players.Num();
+	for(int32 i=0;i<Num;i++)
+	{
+		Players[i]->RemainChips += Chips / Num;
+	}
+}
+
+void AHoldemGameMode::CalPlayersSidePot()
+{
+	const AHoldemGameStateBase* HoldemGameState = GetGameState<AHoldemGameStateBase>();
+	for(const auto& Item : TempPlayersSidePot)
+	{
+		int32& TempChips = PlayerSidePot.FindOrAdd(Item.Key);
+		for(const FPlayerGameStateInfo& PlayerGameStateInfo: HoldemGameState->PlayerGameStateInfos)
+		{
+			TempChips += PlayerGameStateInfo.Chip > Item.Value ? Item.Value : PlayerGameStateInfo.Chip;
+		}
+	}
+	TempPlayersSidePot.Reset();
+}
+
 
 FCardsKeyInfo AHoldemGameMode::AnalyzeCardsKeyInfo(TArray<FCardInfo> Cards)
 {
@@ -351,24 +376,361 @@ FCardsKeyInfo AHoldemGameMode::AnalyzeCardsKeyInfo(TArray<FCardInfo> Cards)
 	return CardsKeyInfo;
 }
 
-TArray<FCardInfo> AHoldemGameMode::ChoosePlayerBestCards(AHoldemPlayerState* Player)
+FCardsKeyInfo AHoldemGameMode::ChoosePlayerBestCards(AHoldemPlayerState* Player)
 {
-	TArray<FCardInfo> BestCards;
-	BestCards.Reserve(5);
-
-	TArray<FCardInfo> PublicCards = Cast<AHoldemGameStateBase>(UGameplayStatics::GetGameState(this))->PublicCards;
+	const TArray<FCardInfo> PublicCards = Cast<AHoldemGameStateBase>(UGameplayStatics::GetGameState(this))->PublicCards;
 	if (PublicCards.Num() != 5)
 	{
 		UE_LOG(LogTemp, Error, TEXT("公共牌数不为5"));
 	}
 
-	TArray<FCardInfo> PlayerCards = Player->GetCardsInfo();
+	// 将公共牌型视为最佳牌型
+	FCardsKeyInfo BestCardsKeyInfo = AnalyzeCardsKeyInfo(PublicCards);
+
+	const TArray<FCardInfo> PlayerCards = Player->GetCardsInfo();
 	if (PlayerCards.Num() != 2)
 	{
 		UE_LOG(LogTemp, Error, TEXT("玩家%s牌数不为2"),*Player->GetPlayerName());
 	}
 
+	// 所有牌
+	TArray<FCardInfo> AllCards;
+	AllCards.Append(PublicCards);
+	AllCards.Append(PlayerCards);
 
+	// 遍历21次得到所有可能牌型
+	for(int32 i=0;i<21;i++)
+	{
+		TArray<FCardInfo> TempCards;
+		for(int32 j=0;i<5;i++)
+		{
+			TempCards.Add(AllCards[CombinationMode[i][j]]);
+		}
+		// 与最佳牌组进行比较
+		const FCardsKeyInfo TempCardKeyInfo = AnalyzeCardsKeyInfo(TempCards);
+		const ECompareResult Result = CompareCards(BestCardsKeyInfo,TempCardKeyInfo);
+		if(Result == ECompareResult::Less)
+		{
+			BestCardsKeyInfo = TempCardKeyInfo;
+		}
+	}
+	
+	return BestCardsKeyInfo;
+}
 
-	return BestCards;
+TArray<FPlayerGameCardInfo> AHoldemGameMode::AnalyzeAllPlayerCards(TArray<AHoldemPlayerState*> Players)
+{
+	TArray<FPlayerGameCardInfo> PlayerGameInfos;
+	for(AHoldemPlayerState* CurPlayerState : Players)
+	{
+		FPlayerGameCardInfo TempPlayerGameInfo;
+		TempPlayerGameInfo.Player = CurPlayerState;
+		TempPlayerGameInfo.CardsKeyInfo = ChoosePlayerBestCards(TempPlayerGameInfo.Player);
+		PlayerGameInfos.Add(TempPlayerGameInfo);
+	}
+	// 将玩家游戏信息进行排序（从大到小）
+	PlayerGameInfos.Sort([](const FPlayerGameCardInfo& A, const FPlayerGameCardInfo& B)
+	{
+		return CompareCards(A.CardsKeyInfo,B.CardsKeyInfo) == ECompareResult::Greater;
+	});
+	return PlayerGameInfos;
+}
+
+void AHoldemGameMode::StartNewGame()
+{
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(UGameplayStatics::GetGameState(this));
+	if(HoldemGameState->PlayerArray.Num() < 3)
+	{
+		UE_LOG(LogTemp,Error,TEXT("玩家数量小于3, 开始新游戏失败"));
+		return;
+	}
+	HoldemGameState->OnNewGame();
+	
+	PlayerSidePot.Reset();
+	ResetCardPool();
+	BlindsCount = 0;
+	
+	UE_LOG(LogTemp,Log,TEXT("开始新游戏"));
+
+	NotifyPlayerStartTurn();
+	BlindsCount++;
+}
+
+void AHoldemGameMode::PrepareStartNewGame()
+{
+	// 给所有玩家发送开始游戏消息
+	for(int32 i=0;i<GameState->PlayerArray.Num();i++)
+	{
+		AHoldemPlayerState* CurPlayerState = Cast<AHoldemPlayerState>(GameState->PlayerArray[i]);
+		Cast<AHoldemPlayerController>(CurPlayerState->GetOwner())->OnNewGame();
+	}
+}
+
+void AHoldemGameMode::SettleGame()
+{
+	const AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	int32 RemainPot = HoldemGameState->Pot;
+	TArray<AHoldemPlayerState*> SettlePlayers;
+	const TArray<FPlayerGameStateInfo>& PlayerGameStateInfos = HoldemGameState->PlayerGameStateInfos;
+	// 将未弃权的玩家进行结算
+	for(const FPlayerGameStateInfo& PlayerGameStateInfo : PlayerGameStateInfos)
+	{
+		if(!PlayerGameStateInfo.bIsFold)
+		{
+			SettlePlayers.Add(PlayerGameStateInfo.Player);
+		}
+	}
+	
+	// 记录公共牌组的关键信息
+	const FCardsKeyInfo PublicCardsKeyInfo = AnalyzeCardsKeyInfo(HoldemGameState->PublicCards);
+
+	TArray<FPlayerGameCardInfo> PlayerGameInfos = AnalyzeAllPlayerCards(SettlePlayers);
+	int32 index = 0;
+	for(const FPlayerGameCardInfo& PlayerGameInfo : PlayerGameInfos)
+	{
+		// 首先判断最佳牌型是否和公共牌一样 ----> 剩余玩家平分底池
+		if(PlayerGameInfo.CardsKeyInfo == PublicCardsKeyInfo)
+		{
+			TArray<AHoldemPlayerState*> EvenlySettlePlayers;
+			for(int32 i = index;i<PlayerGameInfos.Num();i++)
+			{
+				EvenlySettlePlayers.Add(PlayerGameInfos[i].Player);
+			}
+			EvenlyDistributeChips(EvenlySettlePlayers,RemainPot);
+			RemainPot = 0;
+			UE_LOG(LogTemp, Warning, TEXT("剩余玩家最大牌和公共牌一样,平均分配剩余底池%d"),RemainPot);
+			break;
+		}
+
+		// 找到玩家的游戏状态信息
+		const FPlayerGameStateInfo PlayerGameStateInfo = *PlayerGameStateInfos.FindByPredicate([PlayerGameInfo](const FPlayerGameStateInfo& Item)
+		{
+			return Item.Player == PlayerGameInfo.Player;
+		});
+
+		// 判断玩家是否All-in
+		if(PlayerGameStateInfo.bIsAllIn)
+		{
+			if(!PlayerSidePot.Contains(PlayerGameStateInfo.Player))
+			{
+				UE_LOG(LogTemp, Error, TEXT("玩家%s没有边池"),*PlayerGameStateInfo.Player->GetPlayerName());
+				return;
+			}
+			// 给玩家分配经济奖励
+			if(RemainPot > PlayerSidePot[PlayerGameStateInfo.Player])
+			{
+				PlayerGameStateInfo.Player->RemainChips += PlayerSidePot[PlayerGameStateInfo.Player];
+				RemainPot -= PlayerSidePot[PlayerGameStateInfo.Player];
+			}
+			else
+			{
+				PlayerGameStateInfo.Player->RemainChips += RemainPot;
+				RemainPot = 0;
+			}
+			
+			// 底池已分配完毕
+			if(RemainPot == 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("玩家%s All-in 得到边池奖励%d 底池分配完毕"),*PlayerGameStateInfo.Player->GetPlayerName(),PlayerSidePot[PlayerGameStateInfo.Player]);
+				break;
+			}
+			// 底池>0, 继续分配
+			if(RemainPot > 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("玩家%s All-in 得到边池奖励%d 底池剩余%d"),*PlayerGameStateInfo.Player->GetPlayerName(),PlayerSidePot[PlayerGameStateInfo.Player],RemainPot);
+			}
+		}
+		// 没有All-in
+		else
+		{
+			PlayerGameStateInfo.Player->RemainChips += RemainPot;
+			UE_LOG(LogTemp, Warning, TEXT("玩家%s 得到底池奖励%d"),*PlayerGameStateInfo.Player->GetPlayerName(),RemainPot);
+			RemainPot = 0;
+			break;
+		}
+		
+		index++;
+	}
+
+	// 分配奖池完毕
+	if(RemainPot == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("结算游戏成功,分配奖池完毕"));
+	}
+	// 分配奖池未完毕
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("结算游戏有问题,分配奖池未完毕,剩余奖池:%d"),RemainPot);
+	}
+}
+
+bool AHoldemGameMode::CanEnterNextRound()
+{
+	const AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+
+	// 处于盲注阶段特殊处理
+	if(HoldemGameState->HoldemGameState == EHoldemGameState::Blinds)
+	{
+		if(BlindsCount == 2)
+		{
+			return true;
+		}
+		BlindsCount++;
+		return false;
+	}
+	
+	TArray<FPlayerGameStateInfo> PlayerGameStateInfos = HoldemGameState->PlayerGameStateInfos;
+	int32 PlayerChips = -1;
+	for(const FPlayerGameStateInfo& PlayerGameStateInfo : PlayerGameStateInfos)
+	{
+		// 玩家是否弃牌/All-in
+		if(PlayerGameStateInfo.bIsFold || PlayerGameStateInfo.bIsAllIn)
+		{
+			continue;
+		}
+		if(PlayerChips == -1)
+		{
+			PlayerChips = PlayerGameStateInfo.Chip;
+		}
+		else if(PlayerChips!= PlayerGameStateInfo.Chip)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void AHoldemGameMode::TryEnterNextRound()
+{
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	if(CanEnterNextRound())
+	{
+		// 玩家边池计算
+		CalPlayersSidePot();
+		
+		if(HoldemGameState->HoldemGameState == EHoldemGameState::Blinds)
+		{
+			HoldemGameState->HoldemGameState = EHoldemGameState::PreFlop;
+			// 给所有玩家发两张牌
+			for(int32 i = 0;i<HoldemGameState->PlayerArray.Num();i++)
+			{
+				AHoldemPlayerState* PlayerState = Cast<AHoldemPlayerState>(HoldemGameState->PlayerArray[i]);
+				PlayerState->AddCard(GetUnallocatedCard());
+				PlayerState->AddCard(GetUnallocatedCard());
+			}
+		}
+		else if(HoldemGameState->HoldemGameState == EHoldemGameState::PreFlop)
+		{
+			HoldemGameState->HoldemGameState = EHoldemGameState::Flop;
+			// 添加3张公共牌
+			for(int32 i = 0;i<3;i++)
+			{
+				HoldemGameState->AddPublicCard(GetUnallocatedCard());
+			}
+		}
+		else if(HoldemGameState->HoldemGameState == EHoldemGameState::Flop)
+		{
+			HoldemGameState->HoldemGameState = EHoldemGameState::Turn;
+			// 添加一张公共牌
+			HoldemGameState->AddPublicCard(GetUnallocatedCard());
+		}
+		else if(HoldemGameState->HoldemGameState == EHoldemGameState::Turn)
+		{
+			HoldemGameState->HoldemGameState = EHoldemGameState::River;
+			// 添加一张公共牌
+			HoldemGameState->AddPublicCard(GetUnallocatedCard());
+		}
+		else if(HoldemGameState->HoldemGameState == EHoldemGameState::River)
+		{
+			HoldemGameState->HoldemGameState = EHoldemGameState::Showdown;
+			// 结算游戏
+			SettleGame();
+			OnEndGame();
+			return;
+		}
+		else if(HoldemGameState->HoldemGameState == EHoldemGameState::Showdown)
+		{
+			// 代码的结算阶段无意义
+			return;
+		}
+	}
+	
+	NotifyPlayerStartTurn();
+}
+
+void AHoldemGameMode::OnEndGame()
+{
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	// 给所有玩家发送消息结束游戏
+	for(int32 i = 0;i<HoldemGameState->PlayerArray.Num();i++)
+	{
+		AHoldemPlayerController* PlayerController = Cast<AHoldemPlayerController>(HoldemGameState->PlayerArray[i]->GetOwner());
+		if(PlayerController)
+		{
+			PlayerController->OnEndGame();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("玩家%s没有PlayerController"),*HoldemGameState->PlayerArray[i]->GetPlayerName());
+		}
+	}
+	K2_OnEndGame();
+}
+
+void AHoldemGameMode::OnPlayerEnsureTurn(const FPlayerTurnInfo& PlayerTurnInfo)
+{
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	FPlayerGameStateInfo* PlayerGameStateInfo = HoldemGameState->PlayerGameStateInfos.FindByPredicate([PlayerTurnInfo](const FPlayerGameStateInfo& Item)
+	{
+		return Item.Player == PlayerTurnInfo.Player;
+	});
+	// 玩家弃牌
+	if(PlayerGameStateInfo->bIsFold)
+	{
+		PlayerGameStateInfo->bIsFold = true;
+	}
+	else
+	{
+		if(PlayerGameStateInfo->Player->RemainChips > PlayerTurnInfo.Chips)
+		{
+			PlayerGameStateInfo->Player->RemainChips -= PlayerTurnInfo.Chips;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("玩家%s 筹码不足"),*PlayerGameStateInfo->Player->GetPlayerName());
+			OnEndGame();
+			return;
+		}
+		
+		// 增加筹码
+		PlayerGameStateInfo->Chip += PlayerTurnInfo.Chips;
+		HoldemGameState->Pot += PlayerTurnInfo.Chips;
+		
+		// 玩家是否All-in
+		if(PlayerGameStateInfo->bIsAllIn)
+		{
+			PlayerGameStateInfo->bIsAllIn = true;
+			TempPlayersSidePot.Add(PlayerGameStateInfo->Player,PlayerGameStateInfo->Chip);
+		}
+	}
+	TryEnterNextRound();
+}
+
+bool AHoldemGameMode::NotifyPlayerStartTurn()
+{
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	// 通知相关玩家开始 TODO:有bug, 未考虑玩家掉线问题
+	HoldemGameState->CurrentPlayerIndex = (HoldemGameState->CurrentPlayerIndex + 1) % HoldemGameState->PlayerGameStateInfos.Num();
+	for(const auto& PlayerGameStateInfo : HoldemGameState->PlayerGameStateInfos)
+	{
+		if(PlayerGameStateInfo.PlayerIndex == HoldemGameState->CurrentPlayerIndex)
+		{
+			if(AHoldemPlayerController* PlayerController = Cast<AHoldemPlayerController>(PlayerGameStateInfo.Player->GetOwner()))
+			{
+				PlayerController->OnMyTurn();
+				return true;
+			}
+		}
+	}
+	return false;
 }

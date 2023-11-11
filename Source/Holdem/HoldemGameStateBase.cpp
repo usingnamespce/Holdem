@@ -4,6 +4,8 @@
 #include "HoldemGameStateBase.h"
 
 #include "HoldemCharacter.h"
+#include "HoldemGameMode.h"
+#include "HoldemPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -23,6 +25,38 @@ void AHoldemGameStateBase::ResetPublicCardsPool()
 	OnRep_PublicCards();
 }
 
+void AHoldemGameStateBase::OnNewGame()
+{
+	ResetPublicCardsPool();
+	HoldemGameState = EHoldemGameState::Blinds;
+	PlayerGameStateInfos.Reset();
+	Pot = 0;
+	for(APlayerState* CurPlayerState : PlayerArray)
+	{
+		FPlayerGameStateInfo TempPlayerGameStateInfo;
+		TempPlayerGameStateInfo.Player = Cast<AHoldemPlayerState>(CurPlayerState);
+		TempPlayerGameStateInfo.Player->ClearPlayerCards();
+		TempPlayerGameStateInfo.Chip = 0;
+		TempPlayerGameStateInfo.PlayerIndex = TempPlayerGameStateInfo.Player->PlayerIndex;
+		TempPlayerGameStateInfo.bIsFold = false;
+		
+		PlayerGameStateInfos.Add(TempPlayerGameStateInfo);
+	}
+}
+
+int32 AHoldemGameStateBase::GetMaxChips() const
+{
+	int MaxChips = 0;
+	for(const FPlayerGameStateInfo& CurPlayerGameStateInfo : PlayerGameStateInfos)
+	{
+		if(CurPlayerGameStateInfo.Chip > MaxChips)
+		{
+			MaxChips = CurPlayerGameStateInfo.Chip;
+		}
+	}
+	return MaxChips;
+}
+
 void AHoldemGameStateBase::OnRep_PublicCards()
 {
 	if(AHoldemCharacter* Character = Cast<AHoldemCharacter>(UGameplayStatics::GetPlayerController(this,0)->GetPawn()))
@@ -31,9 +65,33 @@ void AHoldemGameStateBase::OnRep_PublicCards()
 	}
 }
 
+void AHoldemGameStateBase::OnRep_PlayerGameStateInfos()
+{
+	
+}
+
+void AHoldemGameStateBase::OnRep_HoldemGameState()
+{
+	
+}
+
+void AHoldemGameStateBase::OnRep_Pot()
+{
+	
+}
+
+void AHoldemGameStateBase::OnRep_CurrentPlayerIndex()
+{
+	
+}
+
 void AHoldemGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,PublicCards,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,PlayerGameStateInfos,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,HoldemGameState,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,Pot,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,CurrentPlayerIndex,COND_None,REPNOTIFY_Always);
 }

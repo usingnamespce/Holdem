@@ -35,6 +35,12 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AHoldemCardBag> CardBagClass;
 
+	UPROPERTY(BlueprintReadWrite)
+	int32 PlayerIndex = -1;
+
+	UPROPERTY(BlueprintReadWrite,Replicated)
+	int32 RemainChips = 0;
+
 private:
 	UFUNCTION()
 	void OnRep_PlayerCards();
@@ -44,6 +50,9 @@ private:
 public:
 	UFUNCTION(BlueprintCallable)
 	void AddCard(FCardInfo NewCardInfo);
+
+	UFUNCTION(BlueprintCallable)
+	void ClearPlayerCards();
 
 	UFUNCTION(BlueprintPure)
 	TArray<FCardInfo> GetCardsInfo();

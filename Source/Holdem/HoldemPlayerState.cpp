@@ -14,6 +14,15 @@ void AHoldemPlayerState::AddCard(FCardInfo NewCardInfo)
 	}
 }
 
+void AHoldemPlayerState::ClearPlayerCards()
+{
+	if(HasAuthority())
+	{
+		PlayerCards.Empty();
+		OnRep_PlayerCards();
+	}
+}
+
 TArray<FCardInfo> AHoldemPlayerState::GetCardsInfo()
 {
 	return PlayerCards;
@@ -52,4 +61,5 @@ void AHoldemPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemPlayerState,PlayerCards,COND_None,REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemPlayerState,PlayerLocationInfo,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemPlayerState,RemainChips,COND_None,REPNOTIFY_Always);
 }
