@@ -653,9 +653,29 @@ void AHoldemGameMode::TryEnterNextRound()
 			// 代码的结算阶段无意义
 			return;
 		}
+
+		// 剩余可出牌玩家数量>1
+		if (CountValidPlayers() > 1)
+		{
+			NotifyPlayerStartTurn();
+		}
+		else
+		{
+			// 判断牌是否发完
+			for (int32 i = 0; i < 5 - HoldemGameState->PublicCards.Num(); i++)
+			{
+				HoldemGameState->AddPublicCard(GetUnallocatedCard());
+			}
+			// 结算游戏
+			HoldemGameState->HoldemGameState = EHoldemGameState::Showdown;
+			SettleGame();
+			OnEndGame();
+		}
 	}
-	NotifyPlayerStartTurn();
-	// TODO:提前结束游戏逻辑
+	else
+	{
+		NotifyPlayerStartTurn();
+	}
 }
 
 void AHoldemGameMode::OnEndGame()
@@ -725,6 +745,11 @@ bool AHoldemGameMode::NotifyPlayerStartTurn()
 	{
 		if(PlayerGameStateInfo.PlayerIndex == HoldemGameState->CurrentPlayerIndex)
 		{
+			if (PlayerGameStateInfo.bIsAllIn || PlayerGameStateInfo.bIsFold)
+			{
+				UE_LOG(LogTemp, Error, TEXT("序号%d的玩家弃牌或梭哈"),HoldemGameState->CurrentPlayerIndex);
+				return NotifyPlayerStartTurn();
+			}
 			if(AHoldemPlayerController* PlayerController = Cast<AHoldemPlayerController>(PlayerGameStateInfo.Player->GetOwner()))
 			{
 				PlayerController->OnMyTurn();
@@ -733,7 +758,6 @@ bool AHoldemGameMode::NotifyPlayerStartTurn()
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("没有找到序号%d的玩家,通知失败"),HoldemGameState->CurrentPlayerIndex);
-	// TODO:排除掉已经弃牌/All-in的玩家
 	return false;
 }
 
