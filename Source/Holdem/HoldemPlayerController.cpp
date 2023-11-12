@@ -12,10 +12,17 @@ void AHoldemPlayerController::OnMyTurn_Implementation()
 	{
 		OnMyTurnDelegate.Broadcast();
 	}
+	UE_LOG(LogTemp,Warning,TEXT("玩家%s收到消息：开始自己回合"),*PlayerState->GetPlayerName());
 }
 
 void AHoldemPlayerController::EnsureMyTurn_Implementation(FPlayerTurnInfo PlayerTurnInfo)
 {
+	if(!IsValid(PlayerTurnInfo.Player))
+	{
+		UE_LOG(LogTemp,Error,TEXT("EnsureMyTurn_Implementation: PlayerTurnInfo.Player is invalid!"));
+		return;
+	}
+	UE_LOG(LogTemp,Warning,TEXT("服务器收到玩家%s消息：确认自己回合"),*PlayerState->GetPlayerName());
 	if(AHoldemGameMode* GameMode = Cast<AHoldemGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
 	{
 		GameMode->OnPlayerEnsureTurn(PlayerTurnInfo);

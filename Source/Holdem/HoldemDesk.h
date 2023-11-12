@@ -36,10 +36,6 @@ private:
 	virtual void BeginPlay() override;
 
 public:
-	
-	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* DeskComponent;
-
 	UPROPERTY(BlueprintReadWrite,EditAnywhere)
 	TArray<FPlayerLocationInfo> PlayersLocationInfos;
 

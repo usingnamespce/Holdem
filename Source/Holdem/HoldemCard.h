@@ -56,7 +56,7 @@ public:
 	AHoldemCard();
 
 	UFUNCTION(BlueprintImplementableEvent,BlueprintCallable)
-	void SetCardInfo(FCardInfo InCardInfo);
+	void SetCardInfo(const FCardInfo& InCardInfo);
 	
 private:
 	

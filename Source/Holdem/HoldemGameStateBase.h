@@ -44,7 +44,14 @@ public:
 	// 当前回合的玩家Index
 	UPROPERTY(BlueprintReadOnly,ReplicatedUsing=OnRep_CurrentPlayerIndex)
 	int32 CurrentPlayerIndex;
-	
+
+	// 盲注最低筹码
+	UPROPERTY(BlueprintReadWrite,Replicated,EditDefaultsOnly)
+	int32 BlindMinChips;
+
+	// 用于计算盲注进度
+	UPROPERTY(BlueprintReadOnly,Replicated)
+	int32 BlindsCount = 0;
 private:
 
 	
@@ -60,8 +67,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnNewGame();
 
+	// 获得玩家所需加注的最大筹码
 	UFUNCTION(BlueprintPure)
-	int32 GetMaxChips() const;
+	int32 GetMaxChips(AHoldemPlayerState* Player) const;
+
+	AHoldemGameStateBase();
+	
 private:
 	UFUNCTION()
 	void OnRep_PublicCards();

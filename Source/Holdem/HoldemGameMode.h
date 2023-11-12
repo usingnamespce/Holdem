@@ -209,6 +209,9 @@ public:
 	// 通知玩家开始回合
 	UFUNCTION(BlueprintCallable)
 	bool NotifyPlayerStartTurn();
+
+	// 统计有效玩家
+	int32 CountValidPlayers() const;
 	
 private:
 	// 判断是否同花
@@ -250,9 +253,6 @@ private:
 	// 用于计算玩家边池, Value为玩家投入的总筹码
 	UPROPERTY()
 	TMap<AHoldemPlayerState*,int32> TempPlayersSidePot;
-
-	// 用于计算盲注进度
-	int32 BlindsCount = 0;
 };
 
 

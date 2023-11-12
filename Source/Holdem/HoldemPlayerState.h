@@ -38,7 +38,7 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	int32 PlayerIndex = -1;
 
-	UPROPERTY(BlueprintReadWrite,Replicated)
+	UPROPERTY(BlueprintReadWrite,Replicated,EditDefaultsOnly)
 	int32 RemainChips = 0;
 
 private:

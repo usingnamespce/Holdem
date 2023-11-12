@@ -9,6 +9,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
+AHoldemGameStateBase::AHoldemGameStateBase()
+{
+	CurrentPlayerIndex = -1;
+	Pot = 0;
+	HoldemGameState = EHoldemGameState::Blinds;
+}
+
 void AHoldemGameStateBase::AddPublicCard(FCardInfo NewCard)
 {
 	if(HasAuthority())
@@ -44,17 +51,22 @@ void AHoldemGameStateBase::OnNewGame()
 	}
 }
 
-int32 AHoldemGameStateBase::GetMaxChips() const
+int32 AHoldemGameStateBase::GetMaxChips(AHoldemPlayerState* Player) const
 {
-	int MaxChips = 0;
+	int32 MaxChips = 0;
+	int32 PlayerChips = 0;
 	for(const FPlayerGameStateInfo& CurPlayerGameStateInfo : PlayerGameStateInfos)
 	{
 		if(CurPlayerGameStateInfo.Chip > MaxChips)
 		{
 			MaxChips = CurPlayerGameStateInfo.Chip;
 		}
+		if(CurPlayerGameStateInfo.Player == Player)
+		{
+			PlayerChips = CurPlayerGameStateInfo.Chip;
+		}
 	}
-	return MaxChips;
+	return MaxChips - PlayerChips;
 }
 
 void AHoldemGameStateBase::OnRep_PublicCards()
@@ -94,4 +106,6 @@ void AHoldemGameStateBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,HoldemGameState,COND_None,REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,Pot,COND_None,REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,CurrentPlayerIndex,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,BlindsCount,COND_None,REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(AHoldemGameStateBase,BlindMinChips,COND_None,REPNOTIFY_Always);
 }

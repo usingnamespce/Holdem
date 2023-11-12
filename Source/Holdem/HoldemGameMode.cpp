@@ -201,8 +201,8 @@ ECompareResult AHoldemGameMode::CompareType(const FCardsKeyInfo& ACards, const F
 	// 比较第一张牌的花色
 	if(ACards.CardInfos[0].Type == BCards.CardInfos[0].Type)
 	{
-		UE_LOG(LogTemp,Warning,TEXT("出现两张花色大小一致的牌"));
-		return ECompareResult::None;
+		UE_LOG(LogTemp,Warning,TEXT("出现两张花色大小一致的牌,比较的两组牌相等???"));
+		return ECompareResult::Equality;
 	}
 	return (ACards.CardInfos[0].Type > BCards.CardInfos[0].Type) ? ECompareResult::Greater : ECompareResult::Less;
 }
@@ -402,7 +402,7 @@ FCardsKeyInfo AHoldemGameMode::ChoosePlayerBestCards(AHoldemPlayerState* Player)
 	for(int32 i=0;i<21;i++)
 	{
 		TArray<FCardInfo> TempCards;
-		for(int32 j=0;i<5;i++)
+		for(int32 j=0;j<5;j++)
 		{
 			TempCards.Add(AllCards[CombinationMode[i][j]]);
 		}
@@ -448,12 +448,11 @@ void AHoldemGameMode::StartNewGame()
 	
 	PlayerSidePot.Reset();
 	ResetCardPool();
-	BlindsCount = 0;
 	
 	UE_LOG(LogTemp,Log,TEXT("开始新游戏"));
 
 	NotifyPlayerStartTurn();
-	BlindsCount++;
+	HoldemGameState->BlindsCount = 1;
 }
 
 void AHoldemGameMode::PrepareStartNewGame()
@@ -566,16 +565,16 @@ void AHoldemGameMode::SettleGame()
 
 bool AHoldemGameMode::CanEnterNextRound()
 {
-	const AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
 
 	// 处于盲注阶段特殊处理
 	if(HoldemGameState->HoldemGameState == EHoldemGameState::Blinds)
 	{
-		if(BlindsCount == 2)
+		if(HoldemGameState->BlindsCount  == 2)
 		{
 			return true;
 		}
-		BlindsCount++;
+		HoldemGameState->BlindsCount++;
 		return false;
 	}
 	
@@ -603,6 +602,7 @@ bool AHoldemGameMode::CanEnterNextRound()
 void AHoldemGameMode::TryEnterNextRound()
 {
 	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	
 	if(CanEnterNextRound())
 	{
 		// 玩家边池计算
@@ -654,8 +654,8 @@ void AHoldemGameMode::TryEnterNextRound()
 			return;
 		}
 	}
-	
 	NotifyPlayerStartTurn();
+	// TODO:提前结束游戏逻辑
 }
 
 void AHoldemGameMode::OnEndGame()
@@ -685,13 +685,13 @@ void AHoldemGameMode::OnPlayerEnsureTurn(const FPlayerTurnInfo& PlayerTurnInfo)
 		return Item.Player == PlayerTurnInfo.Player;
 	});
 	// 玩家弃牌
-	if(PlayerGameStateInfo->bIsFold)
+	if(PlayerTurnInfo.bIsFold)
 	{
 		PlayerGameStateInfo->bIsFold = true;
 	}
 	else
 	{
-		if(PlayerGameStateInfo->Player->RemainChips > PlayerTurnInfo.Chips)
+		if(PlayerGameStateInfo->Player->RemainChips >= PlayerTurnInfo.Chips)
 		{
 			PlayerGameStateInfo->Player->RemainChips -= PlayerTurnInfo.Chips;
 		}
@@ -707,7 +707,7 @@ void AHoldemGameMode::OnPlayerEnsureTurn(const FPlayerTurnInfo& PlayerTurnInfo)
 		HoldemGameState->Pot += PlayerTurnInfo.Chips;
 		
 		// 玩家是否All-in
-		if(PlayerGameStateInfo->bIsAllIn)
+		if(PlayerTurnInfo.bIsAllIn)
 		{
 			PlayerGameStateInfo->bIsAllIn = true;
 			TempPlayersSidePot.Add(PlayerGameStateInfo->Player,PlayerGameStateInfo->Chip);
@@ -732,5 +732,22 @@ bool AHoldemGameMode::NotifyPlayerStartTurn()
 			}
 		}
 	}
+	UE_LOG(LogTemp, Error, TEXT("没有找到序号%d的玩家,通知失败"),HoldemGameState->CurrentPlayerIndex);
+	// TODO:排除掉已经弃牌/All-in的玩家
 	return false;
+}
+
+int32 AHoldemGameMode::CountValidPlayers() const
+{
+	// 找到所有未弃牌、All-in的玩家数量
+	int32 ValidPlayerNum = 0;
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	for(const FPlayerGameStateInfo& PlayerGameStateInfo : HoldemGameState->PlayerGameStateInfos)
+	{
+		if(!PlayerGameStateInfo.bIsFold && !PlayerGameStateInfo.bIsAllIn)
+		{
+			ValidPlayerNum++;
+		}
+	}
+	return ValidPlayerNum;
 }

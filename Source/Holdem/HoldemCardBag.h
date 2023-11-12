@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "HoldemCard.h"
 #include "HoldemCardBag.generated.h"
 
 class AHoldemPlayerState;
@@ -29,4 +30,13 @@ private:
 public:
 	UPROPERTY(BlueprintReadOnly)
 	AHoldemPlayerState* OwnerPlayerState;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<AHoldemCard*> CardPool;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AHoldemCard> CardClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	FVector SpawnLocationOffset;
 };
