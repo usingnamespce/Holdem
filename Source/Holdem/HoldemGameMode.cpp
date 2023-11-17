@@ -382,6 +382,7 @@ FCardsKeyInfo AHoldemGameMode::ChoosePlayerBestCards(AHoldemPlayerState* Player)
 	if (PublicCards.Num() != 5)
 	{
 		UE_LOG(LogTemp, Error, TEXT("公共牌数不为5"));
+		return FCardsKeyInfo();
 	}
 
 	// 将公共牌型视为最佳牌型
@@ -391,6 +392,7 @@ FCardsKeyInfo AHoldemGameMode::ChoosePlayerBestCards(AHoldemPlayerState* Player)
 	if (PlayerCards.Num() != 2)
 	{
 		UE_LOG(LogTemp, Error, TEXT("玩家%s牌数不为2"),*Player->GetPlayerName());
+		return FCardsKeyInfo();
 	}
 
 	// 所有牌
@@ -467,8 +469,8 @@ void AHoldemGameMode::PrepareStartNewGame()
 
 void AHoldemGameMode::SettleGame()
 {
-	const AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
-	int32 RemainPot = HoldemGameState->Pot;
+	AHoldemGameStateBase* HoldemGameState = Cast<AHoldemGameStateBase>(GameState);
+	int32& RemainPot = HoldemGameState->Pot;
 	TArray<AHoldemPlayerState*> SettlePlayers;
 	const TArray<FPlayerGameStateInfo>& PlayerGameStateInfos = HoldemGameState->PlayerGameStateInfos;
 	// 将未弃权的玩家进行结算
@@ -655,14 +657,15 @@ void AHoldemGameMode::TryEnterNextRound()
 		}
 
 		// 剩余可出牌玩家数量>1
-		if (CountValidPlayers() > 1)
+		if (CountValidPlayers() > 1 || HoldemGameState->HoldemGameState == EHoldemGameState::PreFlop)
 		{
 			NotifyPlayerStartTurn();
 		}
 		else
 		{
 			// 判断牌是否发完
-			for (int32 i = 0; i < 5 - HoldemGameState->PublicCards.Num(); i++)
+			int32 AddCardsNum = HoldemGameState->PublicCards.Num();
+			for (int32 i = 0; i < 5 - AddCardsNum; i++)
 			{
 				HoldemGameState->AddPublicCard(GetUnallocatedCard());
 			}

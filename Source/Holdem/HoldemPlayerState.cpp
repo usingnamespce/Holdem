@@ -40,6 +40,11 @@ void AHoldemPlayerState::SetPlayerLocationInfo(FPlayerLocationInfo InPlayerLocat
 	}
 }
 
+void AHoldemPlayerState::K2_SetPlayerName(const FString& S)
+{
+	SetPlayerName(S);
+}
+
 void AHoldemPlayerState::BeginPlay()
 {
 	Super::BeginPlay();

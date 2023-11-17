@@ -60,4 +60,7 @@ public:
 	// 设置玩家位置信息, 并Spawn 卡牌背包
 	UFUNCTION(BlueprintCallable)
 	void SetPlayerLocationInfo(FPlayerLocationInfo InPlayerLocationInfo);
+
+	UFUNCTION(BlueprintCallable)
+	void K2_SetPlayerName(const FString& S);
 };
