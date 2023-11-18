@@ -25,7 +25,7 @@ void AHoldemCardBag::BeginPlay()
 
 void AHoldemCardBag::OnOwnerCardChange()
 {
-	if(HasAuthority() && CardClass)
+	/*if(HasAuthority() && CardClass)
 	{
 		if(CardPool.Num() >= OwnerPlayerState->GetCardsInfo().Num())
 		{
@@ -43,7 +43,7 @@ void AHoldemCardBag::OnOwnerCardChange()
 		}
 		CardPool.Add(SpawnCard);
 	}
-	K2_OnOwnerCardChange();
+	K2_OnOwnerCardChange();*/
 }
 
 

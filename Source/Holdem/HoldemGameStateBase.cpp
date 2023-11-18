@@ -46,6 +46,7 @@ void AHoldemGameStateBase::OnNewGame()
 		TempPlayerGameStateInfo.Chip = 0;
 		TempPlayerGameStateInfo.PlayerIndex = TempPlayerGameStateInfo.Player->PlayerIndex;
 		TempPlayerGameStateInfo.bIsFold = false;
+		TempPlayerGameStateInfo.bIsAllIn = false;
 		
 		PlayerGameStateInfos.Add(TempPlayerGameStateInfo);
 	}

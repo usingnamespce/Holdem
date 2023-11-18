@@ -52,6 +52,9 @@ public:
 	// 确认我的回合
 	UFUNCTION(BlueprintCallable,Server,Reliable)
 	void EnsureMyTurn(FPlayerTurnInfo PlayerTurnInfo);
+	// 准备游戏
+	UFUNCTION(BlueprintCallable,Server,Reliable)
+	void PlayerReady(int32 PlayerRemainChips);
 
 public:
 	UPROPERTY(BlueprintAssignable)

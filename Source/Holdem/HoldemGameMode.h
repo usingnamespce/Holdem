@@ -178,6 +178,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartNewGame();
 
+	// 尝试开始新对局
+	UFUNCTION(BlueprintCallable)
+	bool TryStartNewGame();
+
 	// 准备开始新对局
 	UFUNCTION(BlueprintCallable)
 	void PrepareStartNewGame();
@@ -205,6 +209,10 @@ public:
 	// 当玩家确认回合
 	UFUNCTION()
 	void OnPlayerEnsureTurn(const FPlayerTurnInfo& PlayerTurnInfo);
+
+	// 当玩家准备游戏
+	UFUNCTION()
+	void OnPlayerReady(const int32& ReaminChips, AHoldemPlayerState* Player);
 
 	// 通知玩家开始回合
 	UFUNCTION(BlueprintCallable)
@@ -253,6 +261,10 @@ private:
 	// 用于计算玩家边池, Value为玩家投入的总筹码
 	UPROPERTY()
 	TMap<AHoldemPlayerState*,int32> TempPlayersSidePot;
+
+	int32 ReadyPlayersNum;
+
+	bool bGameIsReady;
 };
 
 

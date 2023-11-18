@@ -17,6 +17,8 @@ AHoldemGameMode::AHoldemGameMode()
 						    { 0,2,3,5,6 }, { 0,2,4,5,6 }, { 0,3,4,5,6 }, 
 						    { 1,2,3,4,5 }, { 1,2,3,4,6 }, { 1,2,3,5,6 }, 
 						    { 1,2,4,5,6 }, { 1,3,4,5,6 }, { 2,3,4,5,6 }});
+	ReadyPlayersNum = 0;
+	bGameIsReady = false;
 }
 
 FCardInfo AHoldemGameMode::GetUnallocatedCard()
@@ -457,6 +459,20 @@ void AHoldemGameMode::StartNewGame()
 	HoldemGameState->BlindsCount = 1;
 }
 
+bool AHoldemGameMode::TryStartNewGame()
+{
+	if(bGameIsReady)
+	{
+		PrepareStartNewGame();
+		FTimerHandle StartNewGameTimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(StartNewGameTimerHandle,this,&AHoldemGameMode::StartNewGame,3.0f,false);
+		UE_LOG(LogTemp,Log,TEXT("3s准备开始新游戏"));
+		return true;
+	}
+	UE_LOG(LogTemp,Warning,TEXT("游戏未准备好，无法开始新游戏。准备玩家数量%d 总玩家数量%d"),ReadyPlayersNum,GameState->PlayerArray.Num());
+	return false;
+}
+
 void AHoldemGameMode::PrepareStartNewGame()
 {
 	// 给所有玩家发送开始游戏消息
@@ -698,6 +714,8 @@ void AHoldemGameMode::OnEndGame()
 		}
 	}
 	K2_OnEndGame();
+	ReadyPlayersNum = 0;
+	bGameIsReady = false;
 }
 
 void AHoldemGameMode::OnPlayerEnsureTurn(const FPlayerTurnInfo& PlayerTurnInfo)
@@ -737,6 +755,23 @@ void AHoldemGameMode::OnPlayerEnsureTurn(const FPlayerTurnInfo& PlayerTurnInfo)
 		}
 	}
 	TryEnterNextRound();
+}
+
+void AHoldemGameMode::OnPlayerReady(const int32& ReaminChips, AHoldemPlayerState* Player)
+{
+	if(Player)
+	{
+		if(ReaminChips > 0)
+		{
+			Player->RemainChips = ReaminChips;
+		}
+		ReadyPlayersNum++;
+		// 排除服务器玩家
+		if(ReadyPlayersNum == GameState->PlayerArray.Num() - 1)
+		{
+			bGameIsReady = true;
+		}
+	}
 }
 
 bool AHoldemGameMode::NotifyPlayerStartTurn()

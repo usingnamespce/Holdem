@@ -44,3 +44,12 @@ void AHoldemPlayerController::OnEndGame_Implementation()
 		OnEndGameDelegate.Broadcast();
 	}
 }
+
+void AHoldemPlayerController::PlayerReady_Implementation(int32 PlayerRemainChips)
+{
+	if(AHoldemGameMode* GameMode = Cast<AHoldemGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
+	{
+		GameMode->OnPlayerReady(PlayerRemainChips,Cast<AHoldemPlayerState>(PlayerState));
+		UE_LOG(LogTemp,Warning,TEXT("玩家%s收到消息：准备游戏"),*PlayerState->GetPlayerName());
+	}
+}
