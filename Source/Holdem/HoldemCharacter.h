@@ -27,14 +27,11 @@ public:
 	float BaseLookUpRate;
 
 protected:
-
-	void OnResetVR();
+	
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void TurnAtRate(float Rate);
 	void LookUpAtRate(float Rate);
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

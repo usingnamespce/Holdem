@@ -47,15 +47,8 @@ void AHoldemCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAxis("MoveForward", this, &AHoldemCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AHoldemCharacter::MoveRight);
 	
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AHoldemCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AHoldemCharacter::LookUpAtRate);
-	
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AHoldemCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AHoldemCharacter::TouchStopped);
-	
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AHoldemCharacter::OnResetVR);
+	/*PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);*/
 }
 
 void AHoldemCharacter::BeginPlay()
@@ -97,21 +90,6 @@ void AHoldemCharacter::OnCardsChange()
 bool AHoldemCharacter::HoldemIsLocalController() const
 {
 	return GetController() == UGameplayStatics::GetPlayerController(this,0);
-}
-
-void AHoldemCharacter::OnResetVR()
-{
-	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-}
-
-void AHoldemCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		Jump();
-}
-
-void AHoldemCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		StopJumping();
 }
 
 void AHoldemCharacter::TurnAtRate(float Rate)
